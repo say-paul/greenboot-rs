@@ -10,7 +10,7 @@ PLATFORMS = $(shell (echo {x86_64,aarch64,powerpc64le,s390x}-unknown-linux-gnu))
 LLVM_COV ?= /usr/bin/llvm-cov
 LLVM_PROFDATA ?= /usr/bin/llvm-profdata
 COVERAGE_OUTPUT_DIR ?= tests/coverage
-CARGO_LLVM_COV ?= $(shell command -v cargo-llvm-cov 2>/dev/null)
+export PATH := $(HOME)/.cargo/bin:$(PATH)
 GREENBOOT_RUST_DEPENDENCIES = rust-anyhow+default-devel \
 				rust-clap+derive-devel \
 				rust-clap+default-devel \
@@ -95,10 +95,14 @@ test-coverage:
 		echo "  Install it with: sudo dnf install llvm"; \
 		exit 1; \
 	fi
-
+	@if ! command -v cargo-llvm-cov >/dev/null 2>&1; then \
+		echo "cargo-llvm-cov not found, installing..."; \
+		cargo install cargo-llvm-cov; \
+	fi
 	@echo "Running test coverage (results will be in $(COVERAGE_OUTPUT_DIR))..."
-	sudo LLVM_COV=$(LLVM_COV) LLVM_PROFDATA=$(LLVM_PROFDATA) cargo llvm-cov test -- --test-threads=1
-	sudo LLVM_COV=$(LLVM_COV) LLVM_PROFDATA=$(LLVM_PROFDATA) cargo llvm-cov report --html --output-dir $(COVERAGE_OUTPUT_DIR)
+	sudo PATH=$(HOME)/.cargo/bin:$$PATH LLVM_COV=$(LLVM_COV) LLVM_PROFDATA=$(LLVM_PROFDATA) cargo llvm-cov test -- --test-threads=1; \
+	test_exit=$$?; \
+	sudo PATH=$(HOME)/.cargo/bin:$$PATH LLVM_COV=$(LLVM_COV) LLVM_PROFDATA=$(LLVM_PROFDATA) cargo llvm-cov report --html --output-dir $(COVERAGE_OUTPUT_DIR)
 	sudo chmod -R 777 $(COVERAGE_OUTPUT_DIR)
 	@echo "Coverage report generated at $(COVERAGE_OUTPUT_DIR)/html/index.html"
 
